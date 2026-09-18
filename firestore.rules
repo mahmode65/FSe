@@ -1,0 +1,97 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        (request.auth.token.email == 'mahmode65@gmail.com' && request.auth.token.email_verified == true)
+      );
+    }
+
+    function isStudentOwner(studentId) {
+      return isSignedIn() && (
+        request.auth.uid == studentId ||
+        (resource != null && resource.data.authUid == request.auth.uid)
+      );
+    }
+
+    // System Settings: Global registration toggle & academic terms
+    match /system_settings/{settingId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Administrators
+    match /admins/{adminUid} {
+      allow read: if isSignedIn() && (request.auth.uid == adminUid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // Schools: Public catalog to authenticated users, capacity increments guarded against over-subscription
+    match /schools/{schoolId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        existing().isActive == true &&
+        incoming().assignedCount == existing().assignedCount + 1 &&
+        incoming().assignedCount <= existing().capacity &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['assignedCount', 'availableSeats', 'updatedAt'])
+      );
+    }
+
+    // Students: Private student academic records and assignments
+    match /students/{studentId} {
+      allow get: if isStudentOwner(studentId) || isAdmin();
+      allow list: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        (request.auth.uid == studentId || (resource != null && resource.data.authUid == request.auth.uid)) &&
+        existing().submissionStatus == 'not_submitted' &&
+        incoming().submissionStatus == 'submitted' &&
+        incoming().diff(existing()).affectedKeys().hasOnly(['phone', 'assignedSchoolId', 'assignedSchoolName', 'submissionStatus', 'submittedAt', 'updatedAt', 'authUid']) &&
+        incoming().id == existing().id &&
+        incoming().nationalIdHash == existing().nationalIdHash &&
+        incoming().studentCodeHash == existing().studentCodeHash
+      );
+    }
+
+    // Preferences: Single submission per student; locked once submitted
+    match /preferences/{preferenceId} {
+      allow get: if isAdmin() || (isSignedIn() && (resource.data.studentId == request.auth.uid || preferenceId == request.auth.uid));
+      allow list: if isAdmin() || (isSignedIn() && resource.data.studentId == request.auth.uid);
+      allow create: if isAdmin() || (
+        isSignedIn() &&
+        (incoming().studentId == request.auth.uid || preferenceId == request.auth.uid) &&
+        incoming().status == 'submitted' &&
+        incoming().phone is string && incoming().phone.size() >= 7 && incoming().phone.size() <= 25 &&
+        incoming().schoolId is string && incoming().schoolId.size() <= 128
+      );
+      allow update, delete: if isAdmin();
+    }
+  }
+}

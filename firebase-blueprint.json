@@ -1,0 +1,119 @@
+{
+  "entities": {
+    "Admin": {
+      "title": "Admin",
+      "description": "Administrator account with management permissions",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "Firebase Auth UID" },
+        "email": { "type": "string", "format": "email", "description": "Admin email address" },
+        "fullName": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["admin", "superadmin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "role"]
+    },
+    "School": {
+      "title": "School",
+      "description": "Training school organization with capacity limit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 150 },
+        "address": { "type": "string", "maxLength": 250 },
+        "city": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "capacity": { "type": "number", "description": "Total seats allocated" },
+        "assignedCount": { "type": "number", "description": "Currently assigned students" },
+        "availableSeats": { "type": "number", "description": "Seats remaining (capacity - assignedCount)" },
+        "isActive": { "type": "boolean", "description": "Whether school accepts selections" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "name", "address", "capacity", "assignedCount", "isActive"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "University student record with academic info and preference state",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "fullName": { "type": "string", "maxLength": 150 },
+        "studentCodeMasked": { "type": "string", "maxLength": 50 },
+        "studentCodeHash": { "type": "string", "maxLength": 128 },
+        "nationalIdHash": { "type": "string", "maxLength": 128 },
+        "nationalIdMasked": { "type": "string", "maxLength": 50 },
+        "department": { "type": "string", "maxLength": 100 },
+        "academicLevel": { "type": "string", "maxLength": 50 },
+        "academicYear": { "type": "string", "maxLength": 30 },
+        "gpa": { "type": "number" },
+        "phone": { "type": "string", "maxLength": 30 },
+        "assignedSchoolId": { "type": "string", "maxLength": 128 },
+        "assignedSchoolName": { "type": "string", "maxLength": 150 },
+        "submissionStatus": { "type": "string", "enum": ["not_submitted", "submitted"] },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "submissionResetCount": { "type": "number" },
+        "authUid": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "fullName", "studentCodeHash", "nationalIdHash", "department", "academicLevel", "submissionStatus"]
+    },
+    "Preference": {
+      "title": "Preference",
+      "description": "Student training school preference submission record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "studentId": { "type": "string", "maxLength": 128 },
+        "studentName": { "type": "string", "maxLength": 150 },
+        "studentCodeMasked": { "type": "string", "maxLength": 50 },
+        "department": { "type": "string", "maxLength": 100 },
+        "academicLevel": { "type": "string", "maxLength": 50 },
+        "schoolId": { "type": "string", "maxLength": 128 },
+        "schoolName": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "status": { "type": "string", "enum": ["submitted", "reset"] },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "studentId", "schoolId", "phone", "status"]
+    },
+    "SystemSettings": {
+      "title": "SystemSettings",
+      "description": "Global application configuration",
+      "type": "object",
+      "properties": {
+        "isRegistrationOpen": { "type": "boolean" },
+        "academicYear": { "type": "string", "maxLength": 50 },
+        "semester": { "type": "string", "maxLength": 50 },
+        "announcement": { "type": "string", "maxLength": 500 },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedBy": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["isRegistrationOpen"]
+    }
+  },
+  "firestore": {
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/Admin" },
+      "description": "Authorized administrator user profiles"
+    },
+    "/schools/{schoolId}": {
+      "schema": { "$ref": "#/entities/School" },
+      "description": "Training schools with capacities and real-time seat counts"
+    },
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Predefined student records with academic info and assignment status"
+    },
+    "/preferences/{studentId}": {
+      "schema": { "$ref": "#/entities/Preference" },
+      "description": "Submitted student preference document keyed by student ID"
+    },
+    "/system_settings/{settingId}": {
+      "schema": { "$ref": "#/entities/SystemSettings" },
+      "description": "Global system settings, e.g. registration window control"
+    }
+  }
+}

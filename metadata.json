@@ -1,0 +1,6 @@
+{
+  "name": "Field Training School Preferences",
+  "description": "A secure web application for university students to submit field training school preferences with real-time capacity management and administrative controls.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
